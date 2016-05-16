@@ -1,0 +1,140 @@
+import json
+import urllib
+import hashlib
+import time
+import requests
+import hmac
+from datetime import datetime
+from multiprocessing import Process
+import multiprocessing 
+
+def BTCe():
+    bitFinexTick = requests.get("https://btc-e.com/api/2/btc_usd/ticker")
+    BTCprice = float(bitFinexTick.json()["ticker"]["last"])
+    return BTCprice
+
+def Bitfinex():
+    bitFinexTick = requests.get("https://api.bitfinex.com/v1/ticker/btcusd")
+    bitFinexPrice = float(bitFinexTick.json()['last_price'])
+    return bitFinexPrice
+
+def Bitstamp():
+    BitStampTicker = requests.get("https://www.bitstamp.net/api/ticker/")
+    BitStampPrice = float(BitStampTicker.json()["last"])
+    return BitStampPrice
+
+a = []
+b = []
+c=[]
+Spread = []
+Spread2 = []
+ThreshHold = 2
+for i in range(10):
+    a.append(BTCe())
+    b.append(Bitfinex())
+    c.append(Bitstamp())
+    Diff = b[-1] - a[-1] - (Bitfinex()*0.002 + BTCe()*0.002)
+    Diff2 = c[-1] - a[-1] - (Bitfinex()*0.002 + BTCe()*0.002)
+    Spread.append(Diff)
+    Spread2.append(Diff2)
+
+def Update1():
+    N = 10
+    State = 0
+    Threshold = 2
+    a.append(BTCe())
+    b.append(Bitfinex())
+    Diff = b[-1] - a[-1] - (Bitfinex()*0.002 + BTCe()*0.002)
+    Spread.append(Diff)
+    if Spread [-2] != Spread[-1]:
+        MovingAve = sum(Spread[-N:]) / len(Spread[-N:])
+        #print "5 Tick Moving Average:",MovingAve
+        print ("Spread:",Spread[-1],"||","Moving Average:",MovingAve ,"||")
+        if Spread[-1] > MovingAve + Threshold:
+            print ("Short BITFINEX:",Bitfinex(),"Long BTCe",BTCe())
+            State = 1
+            while State == 1:
+                time.sleep(0)
+                a.append(BTCe())
+                b.append(Bitfinex())
+                Diff = b[-1] - a[-1] - (Bitfinex()*0.002 + BTCe()*0.002)
+                Spread.append(Diff)
+                if Spread [-2] != Spread[-1]:
+                    MovingAve = sum(Spread[-N:]) / len(Spread[-N:])
+                    print ("Spread:",Spread[-1],"||","Moving Average:",MovingAve,"||")
+                    if Spread[-1] <= MovingAve:
+                        print ("Close Positions")
+                        print ("Long BITFINEX:",Bitfinex(),"Short BTCe",BTCe())
+                        if True:
+                            State = 0
+        if Spread[-1] < MovingAve - Threshold:
+            print ("Long BITFINEX:",Bitfinex(),"Short BTCe",BTCe())
+            State = 2
+            while State == 2: 
+                time.sleep(0)
+                a.append(BTCe())
+                b.append(Bitfinex())
+                Diff = b[-1] - a[-1] - (Bitfinex()*0.002 + BTCe()*0.002)
+                Spread.append(Diff)
+                if Spread [-2] != Spread[-1]:
+                    MovingAve = sum(Spread[-N:]) / len(Spread[-N:])
+                    print ("Spread:",Spread[-1],"||","Moving Average:",MovingAve ,"||")
+                    if Spread[-1] >= MovingAve:
+                        print ("Close Positions")
+                        print ("Short BITFINEX:",Bitfinex(),"Long BTCe",BTCe())
+                        if True:
+                            State = 0
+
+def Update2():
+    N = 10
+    State = 0
+    Threshold = 2
+    a.append(BTCe())
+    c.append(Bitstamp())
+    Diff2 = c[-1] - a[-1] - (Bitstamp()*0.002 + BTCe()*0.002)
+    Spread2.append(Diff)
+    if Spread2[-2] != Spread2[-1]:
+        MovingAve = sum(Spread2[-N:]) / len(Spread2[-N:])
+        #print "5 Tick Moving Average:",MovingAve
+        print ("Spread2:",Spread2[-1],"||","Moving Average:2",MovingAve ,"||")
+        if Spread2[-1] > MovingAve + Threshold:
+            print ("Short BITFINEX:",Bitstamp(),"Long BTCe",BTCe())
+            State = 1
+            while State == 1:
+                time.sleep(0)
+                a.append(BTCe())
+                c.append(Bitstamp())
+                Diff2 = c[-1] - a[-1] - (Bitstamp()*0.002 + BTCe()*0.002)
+                Spread2.append(Diff)
+                if Spread2[-2] != Spread2[-1]:
+                    MovingAve = sum(Spread2[-N:]) / len(Spread2[-N:])
+                    print ("Spread:",Spread2[-1],"||","Moving Average:",MovingAve,"||")
+                    if Spread[-1] <= MovingAve:
+                        print ("Close Positions")
+                        print ("Long BITFINEX:",Bitsamp(),"Short BTCe",BTCe())
+                        if True:
+                            State = 0
+        if Spread2[-1] < MovingAve - Threshold:
+            print ("Long BITFINEX:",Bitstamp(),"Short BTCe",BTCe())
+            State = 2
+            while State == 2: 
+                time.sleep(0)
+                a.append(BTCe())
+                c.append(Bitstamp())
+                Diff2 = c[-1] - a[-1] - (Bitstamp()*0.002 + BTCe()*0.002)
+                Spread.append(Diff)
+                if Spread2[-2] != Spread2[-1]:
+                    MovingAve = sum(Sprea2[-N:]) / len(Spread2[-N:])
+                    print ("Spread:",Spread2[-1],"||","Moving Average:",MovingAve ,"||")
+                    if Spread2[-1] >= MovingAve:
+                        print ("Close Positions")
+                        print ("Short BITFINEX:",Bitstamp(),"Long BTCe",BTCe())
+                        if True:
+                            State = 0
+while True:
+   print("--------")
+   p1 = multiprocessing.Process(target = Update1())
+   p1.start()
+   p2 = multiprocessing.Process(target = Update2())
+   p2.start()
+   time.sleep(1)
