@@ -1,0 +1,271 @@
+import time, json, requests
+import numpy as np
+import matplotlib.pyplot as plt
+from datetime import date
+from matplotlib import style
+from matplotlib.finance import quotes_historical_yahoo
+from matplotlib import finance
+import numpy
+import scipy
+import matplotlib.ticker as mticker
+from matplotlib.finance import candlestick_ohlc
+from scipy import stats
+import matplotlib.animation as animation
+style.use(['dark_background','bmh'])
+
+def BTCe():
+    bitFinexTick = requests.get("https://btc-e.com/api/2/btc_usd/ticker")
+    BTCprice = float(bitFinexTick.json()["ticker"]["last"])
+    return BTCprice
+def BTCVOL():
+    bitFinexTick = requests.get("https://btc-e.com/api/2/btc_usd/ticker")
+    BTCvol = float(bitFinexTick.json()["ticker"]["vol_cur"])
+    return BTCvol
+
+def BitStamp():
+    BitStampTicker = requests.get("https://www.bitstamp.net/api/ticker/")
+    BitStampPrice = float(BitStampTicker.json()["last"])
+    return BitStampPrice
+
+def bitfinex(): 
+    bitFinexTick = requests.get("https://api.bitfinex.com/v1/ticker/btcusd")
+    bitFinexPrice = float(bitFinexTick.json()['last_price'])
+    return bitFinexPrice
+
+def Tick():
+    btceBtcTick = requests.get('https://api.bitfinex.com/v1/ticker/btcusd')
+    btcPrice = float(btceBtcTick.json()['timestamp']) # replace last with updated etc
+    return btcPrice
+
+def movingAve(values,window):
+    weights = np.repeat(1.0,window)/window
+    smas = np.convolve(values,weights,'valid')
+    return smas
+
+duration = 10
+d1 = BTCe()
+z1 = bitfinex()
+r1 = BitStamp()
+
+time.sleep(duration)
+d2 = BTCe()
+z2 = bitfinex()
+r2 = BitStamp()
+
+time.sleep(duration)
+d3 = BTCe()
+z3 = bitfinex()
+r3 = BitStamp()
+
+time.sleep(duration)
+d4 = BTCe()
+z4 = bitfinex()
+r4 = BitStamp()
+
+time.sleep(duration)
+d = [d1,d2,d3,d4]
+z = [z1,z2,z3,z4]
+r = [r1,r2,r3,r4]
+vol = []
+k = []
+g = []
+l = []
+h = []
+q = []
+h3 = []
+h2 = []
+fig = plt.figure(figsize=(18,12))
+sumave1 =[]
+sumave2 = []
+sumave3=[]
+lol=[]
+Thresh = []
+Thresh2 = []
+Thresh3 = []
+Thresh4 = []
+def animate(i):
+    global l
+    for j in range(1):
+        global k 
+        global g
+        global h
+        global h2
+        global h3
+        global d
+        global vol
+        global z
+        global r
+        global duration
+        global q
+        global l
+        global sumave1
+        global sumave2
+        global sumave3
+        global lol
+        global Thresh
+        global Thresh2
+        global Thresh3
+        global Thresh4
+        Tik = g + [Tick()]
+        AveTik = lol + [Tick()]
+        old = l + [bitfinex()]
+        new = k + [BTCe()]
+        btstamp = q + [BitStamp()]
+        newd = d + [BTCe()]
+        newz = z + [bitfinex()]
+        newr = r + [BitStamp()]
+        volume = vol + [BTCVOL()]
+        movavebtce = movingAve(newd,5)
+        movavebitfinex = movingAve(newz,5)
+        movavebitstamp = movingAve(newr,5)
+        lol = AveTik
+        g = Tik
+        l = old
+        k = new
+        q = btstamp
+        d = newd
+        z = newz
+        r = newr
+        vol = volume
+        fees = 0.0025*old[-1] + 0.0025*btstamp[-1]
+        fees2 = 0.0025*new[-1] + 0.0025*btstamp[-1]
+        fees3 = 0.0025*new[-1] + 0.0025*old[-1]
+        Difference = h + [bitfinex()-BTCe()-fees3]
+        Difference2 = h2 + [BitStamp()-BTCe()-fees2]
+        Difference3 = h3 + [bitfinex()-BitStamp()-fees]
+        Average1 = sum(Difference)/len(Difference)
+        Average2 = sum(Difference2)/len(Difference2)
+        Average3 = sum(Difference3)/len(Difference3)
+        Corr1 = scipy.stats.stats.spearmanr(old,new)
+        Corr2 = scipy.stats.stats.spearmanr(old,btstamp)
+        Corr3 = scipy.stats.stats.spearmanr(new,btstamp)
+        sumnew1 = sumave1 + [Average1]
+        sumnew2 = sumave2 + [Average2]
+        sumnew3 = sumave3 + [Average3]
+        h = Difference
+        h2 = Difference2
+        h3 = Difference3
+        Spread1 = Thresh + [sumnew1[-1]+1.5]
+        Spread2 = Thresh2 + [sumnew2[-1]+1.5]
+        Spread3 = Thresh3 + [sumnew1[-1]-1.5]
+        Spread4 = Thresh4 + [sumnew2[-1]-1.5]
+        time.sleep(30)
+        Thresh = Spread1
+        Thresh2 = Spread2
+        Thresh3 = Spread3
+        Thresh4 = Spread4
+        sumave1 = sumnew1
+        sumave2 = sumnew2
+        sumave3 = sumnew3
+
+
+    ax1 = plt.subplot2grid((4,3), (0,0), colspan=3,rowspan=1)
+    plt.plot(g,old,'blueviolet',linewidth=0.5,linestyle="-",label='Price')
+    plt.plot(g,btstamp,'aqua',linewidth=0.5,linestyle="-",label='Price')
+    plt.plot(g,new,'fuchsia',linewidth=0.5,linestyle="-",label='Price')
+    ax1.spines['bottom'].set_color("navy")
+    ax1.spines['top'].set_color("navy")
+    ax1.spines['left'].set_color("navy")
+    ax1.spines['right'].set_color("navy")
+    plt.title(420, loc='right',color='r')
+    plt.setp(ax1.get_yticklabels(), fontsize=11)
+    plt.setp(ax1.get_xticklabels(), fontsize=10)
+    plt.title('Position')
+
+    ax2 = plt.subplot2grid((4,3), (1,0), colspan=2)
+    plt.plot(g,Difference,'blue',linewidth=0.4,linestyle="-")
+    plt.plot(lol,sumnew1,linewidth=0.4,color="black")
+    plt.title('Spread BTC-e - Bitfinex',fontsize = 12)
+    plt.title(["Max:",round(max(Difference),4)],fontsize = 11, loc='Left',color="Green",backgroundcolor="white")
+    plt.text(g[-1], Difference[-1], Corr1,color="black")
+    plt.setp(ax2.get_yticklabels(), fontsize=11)
+    thresh3 = Average1+2
+    thresh4 = Average1-2
+    plt.plot(lol,Spread1,linewidth=0.4,color="steelblue",linestyle="--")
+    plt.plot(lol,Spread3,linewidth=0.4,color="darkcyan",linestyle="--")
+    plt.setp(ax2.get_xticklabels(), fontsize=10,visible=False)
+    plt.grid(b=True, which='minor', color='black', linestyle='--')
+    plt.ylabel('Price')
+
+    ax3 = plt.subplot2grid((4,3), (1, 2))
+    plt.plot(g,old,'c',linewidth=0.5,linestyle="-",label='Price')
+    plt.plot(g,movavebitfinex,'b',linewidth=0.5,linestyle="-")
+    plt.fill_between(g,old,movavebitfinex,where = old > movavebitfinex,facecolor="darkcyan")
+    plt.fill_between(g,old,movavebitfinex,where = old <= movavebitfinex,facecolor="deepskyblue")
+    plt.grid(False)
+    if len(old) > 2:
+        if old[-1] > old[-2]:
+            plt.text(g[-1],old[-1], old[-1],backgroundcolor="green",color="black")
+        else:
+            plt.text(g[-1],old[-1], old[-1],backgroundcolor="red",color="black")
+
+    plt.setp(ax3.get_yticklabels(), fontsize=11)
+    plt.setp(ax3.get_xticklabels(), fontsize=10,visible=False)
+    plt.title('BitFinex',fontsize = 12)
+    plt.ylabel('Price')
+
+    ax4 = plt.subplot2grid((4,3), (2, 0),colspan=2)
+    plt.plot(g,Difference2,'blue',linewidth=0.4,linestyle="-",label="test1")
+    plt.ylabel('Price')
+    plt.title(["Max:",round(max(Difference2),4)],fontsize = 11, loc='Left',color="green",backgroundcolor="white")
+    plt.text(g[-1], Difference2[-1], Corr3,color="black")
+    plt.plot(lol,sumnew2,linewidth=0.4,color="black")
+    thresh1 = Average2+2
+    thresh2 = Average2-2
+    plt.plot(lol,Spread2,linewidth=0.4,color="steelblue",linestyle="--")
+    plt.plot(lol,Spread4,linewidth=0.4,color="darkcyan",linestyle="--")
+
+    plt.setp(ax4.get_yticklabels(), fontsize=11)
+    plt.setp(ax4.get_xticklabels(), fontsize=10,visible=False)
+    plt.grid(b=True, which='minor', color='black', linestyle='--')
+    plt.title('Spread BTC-e - BitStamp',fontsize = 12)
+
+    ax5 = plt.subplot2grid((4,3), (2, 2))
+    plt.plot(g,btstamp,'c',linewidth=0.5,linestyle="-",label='Price')
+    plt.plot(g,movavebitstamp,'b',linewidth=0.5,linestyle="-")
+    plt.title('BitStamp',fontsize = 12)
+    plt.fill_between(g,btstamp,movavebitstamp,where = btstamp > movavebitstamp,facecolor="darkcyan")
+    plt.fill_between(g,btstamp,movavebitstamp,where = btstamp <= movavebitstamp,facecolor="deepskyblue")
+    plt.grid(False)
+
+    if len(btstamp) > 2:
+        if btstamp[-1] > btstamp[-2]:
+            plt.text(g[-1],btstamp[-1], btstamp[-1],backgroundcolor="green",color="black")
+        else:
+            plt.text(g[-1],btstamp[-1], btstamp[-1],backgroundcolor="red",color="black")
+    plt.setp(ax5.get_yticklabels(), fontsize=11)
+    plt.setp(ax5.get_xticklabels(), fontsize=10,visible=False)
+    plt.ylabel('Price')
+
+    ax6 = plt.subplot2grid((4,3), (3, 0),colspan=2)
+    plt.plot(g,Difference3,'blue',linewidth=0.4,linestyle="-")
+    plt.axhline(Average3,linewidth=0.4,color="black")
+    plt.ylabel('Price')
+    plt.title(["Fees",round(fees,3)],fontsize = 11, loc='Left',color="green",backgroundcolor="white")
+    plt.text(g[-1], Difference3[-1], Corr2,color="black")
+    plt.setp(ax6.get_yticklabels(), fontsize=11)
+    plt.setp(ax6.get_xticklabels(), fontsize=10)
+    plt.grid(b=True, which='minor', color='black', linestyle='--')
+    plt.title('Spread BitFinex - BitStamp',fontsize = 12)
+
+    ax7 = plt.subplot2grid((4,3), (3, 2))
+    plt.plot(g,new,'c',linewidth=0.5,linestyle="-",label='Price')
+    plt.plot(g,movavebtce,'b',linewidth=0.5,linestyle="-")
+    plt.title('BTC-e',fontsize = 12)
+    plt.fill_between(g,new,movavebtce,where = new > movavebtce,facecolor="darkcyan")
+    plt.fill_between(g,new,movavebtce,where = new <= movavebtce,facecolor="deepskyblue")
+    plt.grid(False)
+
+    if len(new) > 2:
+        if new[-1] > new[-2]:
+            plt.text(g[-1],new[-1], new[-1],bbox=({'facecolor':'green'}),color="black")
+        else:
+            plt.text(g[-1],new[-1], new[-1],backgroundcolor="red",color="black")
+
+    plt.setp(ax7.get_yticklabels(), fontsize=11)
+    plt.setp(ax7.get_xticklabels(), fontsize=10)
+    plt.xlabel('Ticks')
+    plt.ylabel('Price')
+
+ani = animation.FuncAnimation(fig, animate, interval=1000)
+plt.show()
