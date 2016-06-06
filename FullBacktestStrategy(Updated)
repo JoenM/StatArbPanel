@@ -1,0 +1,174 @@
+from pandas.io.data import DataReader
+from datetime import datetime
+import matplotlib.pyplot as plt
+from matplotlib import style
+import numpy as np
+import statistics as Stats
+import math
+style.use(['dark_background','bmh'])
+
+#DATA
+
+Date = 2008
+
+IGE = DataReader('IGE',  'yahoo', datetime(Date,1,1), datetime(2016,5,30))
+EWC = DataReader('EWC',  'yahoo', datetime(Date,1,1), datetime(2016,5,30))
+EEM = DataReader('EEM',  'yahoo', datetime(Date,1,1), datetime(2016,5,30))
+EWA = DataReader('EWA',  'yahoo', datetime(Date,1,1), datetime(2016,5,30))
+EZA = DataReader('EZA',  'yahoo', datetime(Date,1,1), datetime(2016,5,30))
+
+
+
+VecIGEEWA = IGE['Adj Close'] - EWA['Adj Close']
+VecEWCEZA = abs(EWC['Adj Close'] - EZA['Adj Close'])
+VecEWAEEM = abs(EWA['Adj Close']-EEM['Adj Close'])
+VecIGEEWC = IGE['Adj Close'] - EWC['Adj Close']
+
+IGEPrice = IGE['Adj Close']
+EWAPrice = EWA["Adj Close"]
+EWCPrice = EWC["Adj Close"]
+EEMPrice = EEM["Adj Close"]
+EZAPrice = EZA["Adj Close"]
+
+def movingAve(values,window):
+    weights = np.repeat(1.0,window)/window
+    smas = np.convolve(values,weights,'valid')
+    return smas
+
+def StDev(values):
+    global MovingAve
+    length = len(values)
+    m = sum(values)/length
+    total_sum = 0
+    for i in range(length):
+        total_sum+=(values[i]-m)**2
+    under_root = total_sum*1.0/length
+    return(math.sqrt(under_root))
+
+St=[]
+mean=[]
+IGEEWA=[]
+IGEEWA2=[]
+EWCEZA=[]
+EWCEZA2=[]
+EWAEEM=[]
+EWAEEM2=[]
+IGEEWC=[]
+IGEEWC2=[]
+n = 200
+for i in range(len(VecIGEEWA)):
+    if len(VecIGEEWA) - 20 > i:
+        Mean = mean + [sum(VecIGEEWA[i:n+i])/len(VecIGEEWA[i:n+i])]
+        mean = Mean
+        UpperBand = IGEEWA + [2*StDev(VecIGEEWA[i:n+i])+sum(VecIGEEWA[i:n+i])/len(VecIGEEWA[i:n+i])]
+        LowerBand = IGEEWA2 + [sum(VecIGEEWA[i:n+i])/len(VecIGEEWA[i:n+i])-2*StDev(VecIGEEWA[i:n+i])]
+        IGEEWA = UpperBand
+        IGEEWA2 = LowerBand
+        #================================================
+        UpperBand2 = EWCEZA + [2*StDev(VecEWCEZA[i:n+i])+sum(VecEWCEZA[i:n+i])/len(VecEWCEZA[i:n+i])]
+        LowerBand2 = EWCEZA2 + [sum(VecEWCEZA[i:n+i])/len(VecEWCEZA[i:n+i])-2*StDev(VecEWCEZA[i:n+i])]
+        EWCEZA = UpperBand2
+        EWCEZA2 = LowerBand2
+        #================================================
+        UpperBand3 = EWAEEM + [2*StDev(VecEWAEEM[i:n+i])+sum(VecEWAEEM[i:n+i])/len(VecEWAEEM[i:n+i])]
+        LowerBand3 = EWAEEM2 + [sum(VecEWAEEM[i:n+i])/len(VecEWAEEM[i:n+i])-2*StDev(VecEWAEEM[i:n+i])]
+        EWAEEM = UpperBand3
+        EWAEEM2 = LowerBand3
+        #================================================
+        UpperBand4 = IGEEWC + [2*StDev(VecIGEEWC[i:n+i])+sum(VecIGEEWC[i:n+i])/len(VecIGEEWC[i:n+i])]
+        LowerBand4 = IGEEWC2 + [sum(VecIGEEWC[i:n+i])/len(VecIGEEWC[i:n+i])-2*StDev(VecIGEEWC[i:n+i])]
+        IGEEWC = UpperBand4
+        IGEEWC2 = LowerBand4
+        #print(Sum)
+
+
+#print(len(LowerBand))
+
+j=0
+Ret1=[]
+Ret2=[]
+InInvestement = 1000
+for j in range(5*250):
+    if VecIGEEWA[j] > UpperBand[j]:
+        #print("--------- POSITION OPEN----------")
+        #print("Short Asset 1:",IGEPrice[j],"Long Asset 2:",EWAPrice[j])
+        #print("Mean:",mean[j])
+        PositionOpend = InInvestement - IGEPrice[j] + EWAPrice[j]
+        State = 1
+        while State==1:
+            j=j+1
+            if VecIGEEWA[j] < mean[j]:
+                #print("Long Asset 1:",EWAPrice[j],"Short Asset 2:",IGEPrice[j])
+                #print("Mean:",mean[j])
+                #print("--------- POSITION CLOSED----------")
+                PositionClosed = InInvestement + IGEPrice[j] - EWAPrice[j]
+                #if PositionClosed > PositionOpend:
+                 #   print("Winner Trade")
+                #else:
+                 #   print("Looser Trade")
+                State=0
+        Return1 = ((PositionClosed-PositionOpend)/PositionClosed)
+        CumulativeReturn1 = Ret1 + [Return1]
+        Ret1 = CumulativeReturn1
+        #print("Return",round(Return1,5))
+    if VecIGEEWA[j] < LowerBand[j]:
+        #print("--------- POSITION OPEN----------")
+        #print("Long Asset 1:",IGEPrice[j],"Short Asset 2:",EWAPrice[j])
+        #print("Mean:",mean[j])
+        PositionOpend = InInvestement + IGEPrice[j] - EWAPrice[j]
+        State = 2
+        while State == 2:
+            j=j+1
+            if VecIGEEWA[j] < mean[j]:
+                j=j+1
+                #print("Short Asset 1:",IGEPrice[j],"Long Asset 2:",EWAPrice[j])
+                #print("Mean:",mean[j])
+                #print("--------- POSITION CLOSED----------")
+                PositionClosed = InInvestement - IGEPrice[j] + EWAPrice[j]
+                #if PositionClosed > PositionOpend:
+                #    print("Winner Trade")
+                #else:
+                #    print("Looser Trade")
+                State=0
+        Return2 = ((PositionClosed-PositionOpend)/PositionClosed)
+        #print("Return",round(Return2,5))
+        CumulativeReturn2 = Ret2 + [Return2]
+        Ret2 = CumulativeReturn2
+    j+=1
+print("Number Of Trades:",len(CumulativeReturn1)+len(CumulativeReturn2))
+#print("Number of Winning Trades:",len(CumulativeReturn1))
+#print("Number of Loosing Trades:",len(CumulativeReturn2))
+print("Return1:",sum(CumulativeReturn1))
+print("Return2:",sum(CumulativeReturn2))
+print("Cumulative Return:",sum(CumulativeReturn1)+sum(CumulativeReturn2))
+
+plt.figure(figsize=(22,12))
+ax1 = plt.subplot2grid((4,4), (0,0), colspan=3,rowspan=1)
+plt.plot(IGE['Adj Close'] - EWA['Adj Close'],'c',linewidth=0.5,linestyle="-",label='Price')
+plt.plot(movingAve(VecIGEEWA,n),'b',linewidth=0.5,linestyle="-",label='Price')
+plt.plot(IGEEWA,'y',linewidth=0.5,linestyle="-",label='Price')
+plt.plot(IGEEWA2,'y',linewidth=0.5,linestyle="-",label='Price')
+plt.title("IGE - EWA",fontsize = 11)
+
+ax2 = plt.subplot2grid((4,4), (1,0), colspan=3,rowspan=1)
+plt.plot(abs(EWC['Adj Close'] - EZA['Adj Close']),'c',linewidth=0.5,linestyle="-",label='Price')
+plt.plot(movingAve(VecEWCEZA,n),'b',linewidth=0.5,linestyle="-",label='Price')
+plt.plot(EWCEZA,'y',linewidth=0.5,linestyle="-",label='Price')
+plt.plot(EWCEZA2,'y',linewidth=0.5,linestyle="-",label='Price')
+plt.title("EWC - EZA",fontsize = 11)
+
+ax3 = plt.subplot2grid((4,4), (2,0), colspan=3,rowspan=1)
+plt.plot(abs(EWA['Adj Close']-EEM['Adj Close']),'c',linewidth=0.5,linestyle="-",label='Price')
+plt.plot(movingAve(VecEWAEEM,n),'b',linewidth=0.5,linestyle="-",label='Price')
+plt.plot(EWAEEM,'y',linewidth=0.5,linestyle="-",label='Price')
+plt.plot(EWAEEM2,'y',linewidth=0.5,linestyle="-",label='Price')
+plt.title("EEM - EWA",fontsize = 11)
+
+ax4 = plt.subplot2grid((4,4), (3,0), colspan=3,rowspan=1)
+plt.plot(abs(IGE['Adj Close']-EWC['Adj Close']),'c',linewidth=0.5,linestyle="-",label='Price')
+plt.plot(movingAve(VecIGEEWC,n),'b',linewidth=0.5,linestyle="-",label='Price')
+plt.plot(IGEEWC,'y',linewidth=0.5,linestyle="-",label='Price')
+plt.plot(IGEEWC2,'y',linewidth=0.5,linestyle="-",label='Price')
+plt.title("IGE - EWC",fontsize = 11)
+
+plt.show()
